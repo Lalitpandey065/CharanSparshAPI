@@ -232,7 +232,7 @@ const updateProduct = asyncHandler(async (req, res) => {
 });
 const buildQuery = (params) => {
   const query = {};
-  
+
   if (params.productTitle) {
     query.productTitle = { $regex: params.productTitle, $options: 'i' }; // Case-insensitive regex
   }
@@ -286,18 +286,52 @@ const buildQuery = (params) => {
 };
 
 const searchProducts = asyncHandler(async (req, res) => {
-  const query = buildQuery(req.query);
+  try {
+    // Extract search term from query params
+    let searchParams = req.query.query;
 
-  const products = await Product.find(query);
+    if (!searchParams) {
+      searchParams = "";
+      //   return res.status(400).json(new ApiResponse(400, null, "Search params are required."));
+    }
 
-  if (products.length === 0) {
-    await SearchData.create({ searchParam: req.query });
+    // Build a query to search across multiple fields
+    const query = {
+      $or: [
+        { productTitle: { $regex: searchParams, $options: 'i' } },
+        { description: { $regex: searchParams, $options: 'i' } },
+        { shortDescription: { $regex: searchParams, $options: 'i' } },
+        { categories: { $regex: searchParams, $options: 'i' } },
+        { brand: { $regex: searchParams, $options: 'i' } },
+        { productTags: { $regex: searchParams, $options: 'i' } },
+        { type: { $regex: searchParams, $options: 'i' } },
+        { itemType: { $regex: searchParams, $options: 'i' } },
+      ],
+    };
 
-    throw new ApiError(404, "No products found matching the criteria.");
+    // Fetch products based on the query
+    const products = await Product.find(query);
+
+    if (products.length === 0) {
+      // Record the search parameters if no products found
+      await SearchData.create({ searchParam: searchParams });
+
+      // Throw a 404 error if no products are found
+      throw new ApiError(404, "No products found matching the criteria.");
+    }
+
+    // Return the found products
+    return res.json(new ApiResponse(200, products, "Products retrieved successfully"));
+
+  } catch (error) {
+    // Handle unexpected errors
+    return res.status(error.statusCode || 500).json({
+      status: 'error',
+      message: error.message || 'An unexpected error occurred',
+    });
   }
-
-  return res.json(new ApiResponse(200, products, "Products retrieved successfully"));
 });
+
 
 export {
   addProduct,
