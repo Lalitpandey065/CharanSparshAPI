@@ -287,33 +287,34 @@ const buildQuery = (params) => {
 
 const searchProducts = asyncHandler(async (req, res) => {
   try {
-    // Extract search term from query params
     let searchParams = req.query.query;
 
     if (!searchParams) {
-      searchParams = "";
-      //   return res.status(400).json(new ApiResponse(400, null, "Search params are required."));
+      return res.status(400).json(new ApiResponse(400, null, "Search params are required."));
     }
 
-    // Build a query to search across multiple fields
+    const searchTerms = searchParams.split(' ');
+
     const query = {
-      $or: [
-        { productTitle: { $regex: searchParams, $options: 'i' } },
-        { description: { $regex: searchParams, $options: 'i' } },
-        { shortDescription: { $regex: searchParams, $options: 'i' } },
-        { categories: { $regex: searchParams, $options: 'i' } },
-        { brand: { $regex: searchParams, $options: 'i' } },
-        { productTags: { $regex: searchParams, $options: 'i' } },
-        { type: { $regex: searchParams, $options: 'i' } },
-        { itemType: { $regex: searchParams, $options: 'i' } },
-      ],
+      $and: searchTerms.map(term => ({
+        $or: [
+          { title: { $regex: term, $options: 'i' } },
+          { description: { $regex: term, $options: 'i' } },
+          { shortDescription: { $regex: term, $options: 'i' } },
+          { categories: { $regex: term, $options: 'i' } },
+          { stocks: { $regex: term, $options: 'i' } },
+          { brand: { $regex: term, $options: 'i' } },
+          { productTags: { $regex: term, $options: 'i' } },
+          { type: { $regex: term, $options: 'i' } },
+          { itemType: { $regex: term, $options: 'i' } },
+          { tags: { $regex: term, $options: 'i' } },
+        ],
+      })),
     };
 
-    // Fetch products based on the query
     const products = await Product.find(query);
 
     if (products.length === 0) {
-      // Record the search parameters if no products found
       await SearchData.create({ searchParam: searchParams });
 
       // Throw a 404 error if no products are found
