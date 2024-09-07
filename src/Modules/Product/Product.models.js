@@ -67,8 +67,8 @@ const productSchema = new mongoose.Schema({
     type: String,
   },
   IsApproved:{
-    type:Number,
-    required:true,
+    type:Boolean,
+    default:false,
   },
   type: {
     type: String,

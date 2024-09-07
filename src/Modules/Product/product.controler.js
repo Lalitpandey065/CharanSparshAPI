@@ -90,7 +90,8 @@ const addProduct = async (req, res) => {
       status,
       visibility,
       type,
-      itemType
+      itemType,
+      IsApproved
     });
 
     return res.status(201).json({
@@ -332,6 +333,23 @@ const searchProducts = asyncHandler(async (req, res) => {
     });
   }
 });
+const approveProduct = asyncHandler(async (req, res) => {
+  const Id =req.query.id;
+
+  // Find the product
+  const product = await Product.findById(Id);
+  if (!product) {
+    throw new ApiError(404, "product not found");
+  }
+
+  // Update the IsApproved field to true
+  product.IsApproved = true;
+  await product.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { isApproved: product.IsApproved }, "product approval status updated successfully"));
+});
 
 
 export {
@@ -340,5 +358,6 @@ export {
   getAllProducts,
   getSingleProduct,
   updateProduct,
-  searchProducts
+  searchProducts,
+  approveProduct
 };
